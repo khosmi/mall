@@ -28,7 +28,7 @@
 ![증빙10](https://github.com/bigot93/forthcafe/blob/main/images/%ED%97%A5%EC%82%AC%EA%B3%A0%EB%82%A0.png)
 
 # 구현
-분석/설계 단계에서 도출된 헥사고날 아키텍처에 따라, 구현한 각 서비스를 로컬에서 실행하는 방법은 아래와 같다 (각각의 포트넘버는 8081 ~ 8084, 8088 이다)
+분석/설계 단계에서 도출된 헥사고날 아키텍처에 따라, 구현한 각 서비스를 로컬에서 실행하는 방법은 아래와 같다. (각각의 포트넘버는 8080 ~ 8084이다)
 ```
 cd gateway
 mvn spring-boot:run
@@ -48,7 +48,6 @@ mvn spring-boot:run
 
 ## DDD 의 적용
 msaez.io를 통해 구현한 Aggregate 단위로 Entity를 선언 후, 구현을 진행하였다.
-
 Entity Pattern과 Repository Pattern을 적용하기 위해 Spring Data REST의 RestRepository를 적용하였다.
 
 **Reservation 서비스의 Reservation.java**
@@ -417,9 +416,18 @@ public class Ticket {
 
 DDD 적용 후 REST API의 테스트를 통하여 정상적으로 동작하는 것을 확인할 수 있었다.
 
-- 예약 서비스 호출 결과 
+- Resevation 서비스 호출 결과 
+![image](https://user-images.githubusercontent.com/86760622/130421675-11836da1-dbe8-48b5-a241-90a1855b7a96.png)
 
-![image](https://user-images.githubusercontent.com/86760622/130420545-8f9de16c-4251-4f5a-9f57-70a8a2386ba3.png)
+- Pay 서비스 호출 결과 
+![image](https://user-images.githubusercontent.com/86760622/130421919-df745446-0c4d-42f6-9792-fcb399062966.png)
+
+- Ticket 서비스 호출 결과
+![image](https://user-images.githubusercontent.com/86760622/130422013-a3e30485-5869-4716-84fe-a3a3b49c3277.png)
+
+- MyReservation 서비스 호출 결과 
+![image](https://user-images.githubusercontent.com/86760622/130422106-b95d5fcf-92c8-438e-abdd-27250e32464c.png)
+
 
 
 
@@ -466,7 +474,9 @@ spring:
 ```
 8080 port로 Order서비스 정상 호출
 
-![증빙1](https://github.com/bigot93/forthcafe/blob/main/images/gateway.png)
+![image](https://user-images.githubusercontent.com/86760622/130422248-3f5dc3f6-7073-4b18-8ae5-50429dd94ab2.png)
+
+
 
 # CQRS/saga/correlation
 Materialized View를 구현하여, 타 마이크로서비스의 데이터 원본에 접근없이(Composite 서비스나 조인SQL 등 없이)도 내 서비스의 화면 구성과 잦은 조회가 가능하게 구현해 두었다. 본 프로젝트에서 View 역할은 MyPages 서비스가 수행한다.

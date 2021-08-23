@@ -53,17 +53,365 @@ Entity Pattern과 Repository Pattern을 적용하기 위해 Spring Data REST의 
 
 **Reservation 서비스의 Reservation.java**
 ```java 
+package movie;
 
+import javax.persistence.*;
+import org.springframework.beans.BeanUtils;
+import java.util.List;
+import java.util.Date;
+
+@Entity
+@Table(name="Reservation_table")
+public class Reservation {
+
+    @Id
+    @GeneratedValue(strategy=GenerationType.AUTO)
+    private Long id;
+    private String userid;
+    private String movie;
+    private String theater;
+    private String time;
+    private String seatNo;
+    private Integer price;
+    private String cardNo;
+    private String status;
+
+    @PostPersist
+    public void onPostPersist(){
+        Reserved reserved = new Reserved();
+        BeanUtils.copyProperties(this, reserved);
+        reserved.setStatus("Reserved");  // 예약상태 입력 by khos
+        reserved.publishAfterCommit();
+
+        //Following code causes dependency to external APIs
+        // it is NOT A GOOD PRACTICE. instead, Event-Policy mapping is recommended.
+
+        movie.external.Pay pay = new movie.external.Pay();
+        // mappings goes here
+        BeanUtils.copyProperties(this, pay); // Pay 값 설정 by khos
+        pay.setReservationId(reserved.getId());
+        pay.setStatus("reserved"); // Pay 값 설정 by khos
+        ReservationApplication.applicationContext.getBean(movie.external.PayService.class)
+            .pay(pay);
+
+    }
+    @PreRemove
+    public void onPreRemove(){
+        CanceledReservation canceledReservation = new CanceledReservation();
+        BeanUtils.copyProperties(this, canceledReservation);
+        canceledReservation.setStatus("Canceled Reservation");  // 예약상태 입력 by khos
+        canceledReservation.publishAfterCommit();
+
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+    public String getUserid() {
+        return userid;
+    }
+
+    public void setUserid(String userid) {
+        this.userid = userid;
+    }
+    public String getMovie() {
+        return movie;
+    }
+
+    public void setMovie(String movie) {
+        this.movie = movie;
+    }
+    public String getTheater() {
+        return theater;
+    }
+
+    public void setTheater(String theater) {
+        this.theater = theater;
+    }
+    public String getTime() {
+        return time;
+    }
+
+    public void setTime(String time) {
+        this.time = time;
+    }
+    public String getSeatNo() {
+        return seatNo;
+    }
+
+    public void setSeatNo(String seatNo) {
+        this.seatNo = seatNo;
+    }
+    public Integer getPrice() {
+        return price;
+    }
+
+    public void setPrice(Integer price) {
+        this.price = price;
+    }
+    public String getCardNo() {
+        return cardNo;
+    }
+
+    public void setCardNo(String cardNo) {
+        this.cardNo = cardNo;
+    }
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+}
 
 ```
 
 **Pay 서비스의 Pay.java**
 ```java
+package movie;
+
+import javax.persistence.*;
+import org.springframework.beans.BeanUtils;
+import java.util.List;
+import java.util.Date;
+
+@Entity
+@Table(name="Pay_table")
+public class Pay {
+
+    @Id
+    @GeneratedValue(strategy=GenerationType.AUTO)
+    private Long id;
+    private Long reservationId;
+    private String userid;
+    private String movie;
+    private String theater;
+    private String time;
+    private Integer price;
+    private String cardNo;
+    private String status;
+    private String seatNo;
+
+    @PostPersist
+    public void onPostPersist(){
+        Payed payed = new Payed();
+        BeanUtils.copyProperties(this, payed);
+        payed.publishAfterCommit();
+
+    }
+
+    @PostUpdate
+    public void onPostUpdate(){
+        Payed payed = new Payed();
+        BeanUtils.copyProperties(this, payed);
+        payed.publishAfterCommit();
+    }
+
+    @PreRemove
+    public void onPreRemove(){
+        CanceledPay canceledPay = new CanceledPay();
+        BeanUtils.copyProperties(this, canceledPay);
+        canceledPay.setStatus("Canceled Payment");  // 상태 변경 by khos
+        canceledPay.publishAfterCommit();
+
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+    public Long getReservationId() {
+        return reservationId;
+    }
+
+    public void setReservationId(Long reservationId) {
+        this.reservationId = reservationId;
+    }
+    public String getUserid() {
+        return userid;
+    }
+
+    public void setUserid(String userid) {
+        this.userid = userid;
+    }
+    public String getMovie() {
+        return movie;
+    }
+
+    public void setMovie(String movie) {
+        this.movie = movie;
+    }
+    public String getTheater() {
+        return theater;
+    }
+
+    public void setTheater(String theater) {
+        this.theater = theater;
+    }
+    public String getTime() {
+        return time;
+    }
+
+    public void setTime(String time) {
+        this.time = time;
+    }
+    public Integer getPrice() {
+        return price;
+    }
+
+    public void setPrice(Integer price) {
+        this.price = price;
+    }
+    public String getCardNo() {
+        return cardNo;
+    }
+
+    public void setCardNo(String cardNo) {
+        this.cardNo = cardNo;
+    }
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+    public String getSeatNo() {
+        return seatNo;
+    }
+
+    public void setSeatNo(String seatNo) {
+        this.seatNo = seatNo;
+    }
+
+
+}
 
 ```
 
 **Ticket 서비스의 Ticket.java**
 ```java
+package movie;
+
+import javax.persistence.*;
+import org.springframework.beans.BeanUtils;
+import java.util.List;
+import java.util.Date;
+
+@Entity
+@Table(name="Ticket_table")
+public class Ticket {
+
+    @Id
+    @GeneratedValue(strategy=GenerationType.AUTO)
+    private Long id;
+    private Long reservationId;
+    private Long payId;
+    private String userid;
+    private String movie;
+    private String theater;
+    private String time;
+    private String seatNo;
+    private String status;
+
+    @PostPersist
+    public void onPostPersist(){
+        Ticketed ticketed = new Ticketed();
+        BeanUtils.copyProperties(this, ticketed);
+        ticketed.publishAfterCommit();
+
+    }
+
+    @PostUpdate
+    public void onPostUpdate(){
+        Ticketed ticketed = new Ticketed();
+        BeanUtils.copyProperties(this, ticketed);
+        ticketed.publishAfterCommit();
+
+    }
+
+    @PreRemove
+    public void onPreRemove(){
+        CanceledTicket canceledTicket = new CanceledTicket();
+        BeanUtils.copyProperties(this, canceledTicket);
+        canceledTicket.publishAfterCommit();
+
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+    public Long getReservationId() {
+        return reservationId;
+    }
+
+    public void setReservationId(Long reservationId) {
+        this.reservationId = reservationId;
+    }
+    public Long getPayId() {
+        return payId;
+    }
+
+    public void setPayId(Long payId) {
+        this.payId = payId;
+    }
+    public String getUserid() {
+        return userid;
+    }
+
+    public void setUserid(String userid) {
+        this.userid = userid;
+    }
+    public String getMovie() {
+        return movie;
+    }
+
+    public void setMovie(String movie) {
+        this.movie = movie;
+    }
+    public String getTheater() {
+        return theater;
+    }
+
+    public void setTheater(String theater) {
+        this.theater = theater;
+    }
+    public String getTime() {
+        return time;
+    }
+
+    public void setTime(String time) {
+        this.time = time;
+    }
+    public String getSeatNo() {
+        return seatNo;
+    }
+
+    public void setSeatNo(String seatNo) {
+        this.seatNo = seatNo;
+    }
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+}
 
 ```
 
@@ -121,7 +469,7 @@ spring:
 # CQRS/saga/correlation
 Materialized View를 구현하여, 타 마이크로서비스의 데이터 원본에 접근없이(Composite 서비스나 조인SQL 등 없이)도 내 서비스의 화면 구성과 잦은 조회가 가능하게 구현해 두었다. 본 프로젝트에서 View 역할은 MyPages 서비스가 수행한다.
 
-주문(ordered) 실행 후 MyPages 화면
+주문(ordered) 실행 후 MyReservation 화면
 
 ![증빙3](https://github.com/bigot93/forthcafe/blob/main/images/order_pages.png)
 

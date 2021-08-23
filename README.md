@@ -417,15 +417,19 @@ public class Ticket {
 DDD 적용 후 REST API의 테스트를 통하여 정상적으로 동작하는 것을 확인할 수 있었다.
 
 - Resevation 서비스 호출 결과 
+
 ![image](https://user-images.githubusercontent.com/86760622/130421675-11836da1-dbe8-48b5-a241-90a1855b7a96.png)
 
 - Pay 서비스 호출 결과 
+
 ![image](https://user-images.githubusercontent.com/86760622/130421919-df745446-0c4d-42f6-9792-fcb399062966.png)
 
 - Ticket 서비스 호출 결과
+
 ![image](https://user-images.githubusercontent.com/86760622/130422013-a3e30485-5869-4716-84fe-a3a3b49c3277.png)
 
 - MyReservation 서비스 호출 결과 
+
 ![image](https://user-images.githubusercontent.com/86760622/130422106-b95d5fcf-92c8-438e-abdd-27250e32464c.png)
 
 

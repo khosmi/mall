@@ -1,6 +1,6 @@
 # mall2
 
-# forthcafe
+# Movie Reservation
 # 서비스 시나리오
 ### 기능적 요구사항
 1. 고객이 영화를 예약한다
@@ -22,9 +22,6 @@
 
 # Event Storming 결과
 ![image](https://user-images.githubusercontent.com/86760622/130416307-f2fc6258-6512-4a41-bb9e-787cb997ceae.png)
-![화면 캡처 2021-08-23 173243](https://user-images.githubusercontent.com/86760622/130416374-379abda8-af78-44bb-a540-6d16ae03dc14.png)
-![image](https://user-images.githubusercontent.com/86760622/130416394-9603df61-e475-4138-8523-18e751b55ddd.png)
-
 ![EventStormingV1](https://github.com/bigot93/forthcafe/blob/main/images/eventingstorming_forthcafe.png)
 
 # 헥사고날 아키텍처 다이어그램 도출
@@ -33,20 +30,20 @@
 # 구현
 분석/설계 단계에서 도출된 헥사고날 아키텍처에 따라, 구현한 각 서비스를 로컬에서 실행하는 방법은 아래와 같다 (각각의 포트넘버는 8081 ~ 8084, 8088 이다)
 ```
-cd Order
-mvn spring-boot:run  
+cd gateway
+mvn spring-boot:run
+
+cd Reservation
+mvn spring-boot:run
 
 cd Pay
 mvn spring-boot:run
 
-cd Delivery
-mvn spring-boot:run 
+cd Ticket
+mvn spring-boot:run
 
-cd MyPage
-mvn spring-boot:run  
-
-cd gateway
-mvn spring-boot:run 
+cd MyReservation
+mvn spring-boot:run
 ```
 
 ## DDD 의 적용
@@ -54,163 +51,20 @@ msaez.io를 통해 구현한 Aggregate 단위로 Entity를 선언 후, 구현을
 
 Entity Pattern과 Repository Pattern을 적용하기 위해 Spring Data REST의 RestRepository를 적용하였다.
 
-**Order 서비스의 Order.java**
+**Reservation 서비스의 Reservation.java**
 ```java 
-package forthcafe;
-
-import javax.persistence.*;
-import org.springframework.beans.BeanUtils;
-
-import forthcafe.external.Pay;
-import forthcafe.external.PayService;
-
-@Entity
-@Table(name="Order_table")
-public class Order {
-
-    @Id
-    @GeneratedValue(strategy=GenerationType.AUTO)
-    private Long id;
-    private String ordererName;
-    private String menuName;
-    private Long menuId;
-    private Double price;
-    private Integer quantity;
-    private String status;
-
-    @PostPersist
-    public void onPostPersist(){
-        Ordered ordered = new Ordered();
-        BeanUtils.copyProperties(this, ordered);
-        ordered.setStatus("Order");
-        
-        ordered.publish();
-
-        Pay pay = new Pay();
-        BeanUtils.copyProperties(this, pay);
-        
-        OrderApplication.applicationContext.getBean(PayService.class).pay(pay);
-    }
-    
-    @PreRemove
-    public void onPreRemove(){
-        OrderCancelled orderCancelled = new OrderCancelled();
-        BeanUtils.copyProperties(this, orderCancelled);
-
-        orderCancelled.publishAfterCommit();
-    }
 
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-    public Double getPrice() {
-        return price;
-    }
-
-    public void setPrice(Double price) {
-        this.price = price;
-    }
-    public Integer getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(Integer quantity) {
-        this.quantity = quantity;
-    }
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public String getOrdererName() {
-        return ordererName;
-    }
-
-    public void setOrdererName(String ordererName) {
-        this.ordererName = ordererName;
-    }
-
-    public String getMenuName() {
-        return menuName;
-    }
-
-    public void setMenuName(String menuName) {
-        this.menuName = menuName;
-    }
-
-    public Long getMenuId() {
-        return menuId;
-    }
-
-    public void setMenuId(Long menuId) {
-        this.menuId = menuId;
-    }
-}
 ```
 
-**Pay 서비스의 PolicyHandler.java**
+**Pay 서비스의 Pay.java**
 ```java
-package forthcafe;
 
-import forthcafe.config.kafka.KafkaProcessor;
+```
 
-import java.util.List;
-import java.util.Optional;
+**Ticket 서비스의 Ticket.java**
+```java
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cloud.stream.annotation.StreamListener;
-import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.stereotype.Service;
-
-@Service
-public class PolicyHandler{
-
-    @Autowired
-    PayRepository payRepository;
-
-    @StreamListener(KafkaProcessor.INPUT)
-    public void onStringEventListener(@Payload String eventString){
-
-    }
-
-    @StreamListener(KafkaProcessor.INPUT)
-    public void wheneverOrderCancelled_(@Payload OrderCancelled orderCancelled){
-
-        try {
-            if(orderCancelled.isMe()){
-                System.out.println("##### OrderCancelled listener  : " + orderCancelled.toJson());
-    
-                Optional<Pay> Optional = payRepository.findById(orderCancelled.getId());
-    
-                if( Optional.isPresent()) {
-                    Pay pay = Optional.get();
-    
-                    // 객체에 이벤트의 eventDirectValue 를 set 함
-                    pay.setId(orderCancelled.getId());
-                    pay.setMenuId(orderCancelled.getMenuId());
-                    pay.setMenuName(orderCancelled.getMenuName());
-                    pay.setOrdererName(orderCancelled.getOrdererName());
-                    pay.setPrice(orderCancelled.getPrice());
-                    pay.setQuantity(orderCancelled.getQuantity());
-                    pay.setStatus("payCancelled");
-
-                    payRepository.save(pay);
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-}
 ```
 
 DDD 적용 후 REST API의 테스트를 통하여 정상적으로 동작하는 것을 확인할 수 있었다.
@@ -224,7 +78,7 @@ API GateWay를 통하여 마이크로 서비스들의 집입점을 통일할 수
 
 ```yaml
 server:
-  port: 8088
+  port: 8080
 
 ---
 
@@ -233,22 +87,22 @@ spring:
   cloud:
     gateway:
       routes:
-        - id: Order
+        - id: Reservation
           uri: http://localhost:8081
           predicates:
-            - Path=/orders/** 
+            - Path=/reservations/** 
         - id: Pay
           uri: http://localhost:8082
           predicates:
             - Path=/pays/** 
-        - id: Delivery
+        - id: Ticket
           uri: http://localhost:8083
           predicates:
-            - Path=/deliveries/** 
-        - id: MyPage
+            - Path=/tickets/** 
+        - id: MyReservation
           uri: http://localhost:8084
           predicates:
-            - Path= /myPages/**
+            - Path= /myReservations/**
       globalcors:
         corsConfigurations:
           '[/**]':
@@ -259,46 +113,8 @@ spring:
             allowedHeaders:
               - "*"
             allowCredentials: true
-
-
----
-
-spring:
-  profiles: docker
-  cloud:
-    gateway:
-      routes:
-        - id: Order
-          uri: http://Order:8080
-          predicates:
-            - Path=/orders/** 
-        - id: Pay
-          uri: http://Pay:8080
-          predicates:
-            - Path=/pays/** 
-        - id: Delivery
-          uri: http://Delivery:8080
-          predicates:
-            - Path=/deliveries/** 
-        - id: MyPage
-          uri: http://MyPage:8080
-          predicates:
-            - Path= /myPages/**
-      globalcors:
-        corsConfigurations:
-          '[/**]':
-            allowedOrigins:
-              - "*"
-            allowedMethods:
-              - "*"
-            allowedHeaders:
-              - "*"
-            allowCredentials: true
-
-server:
-  port: 8080
 ```
-8088 port로 Order서비스 정상 호출
+8080 port로 Order서비스 정상 호출
 
 ![증빙1](https://github.com/bigot93/forthcafe/blob/main/images/gateway.png)
 
